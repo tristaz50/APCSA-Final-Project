@@ -1,2 +1,2 @@
 # APCSA-Final-Project
-Trista Zhou and Aanya Khanna: World 
+Trista Zhou and Aanya Khanna: Wordle

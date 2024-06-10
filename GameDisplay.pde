@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 
-GameLogic1 gameLogic;
+ArrayList<String> dictionary;
+String targetWord;
 String currentGuess = "";
 String[] guesses = new String[6];
 int guessCount = 0;
@@ -12,8 +13,8 @@ ArrayList<Character> usedLetters = new ArrayList<>();
 
 void setup() {
     size(700, 800);
-    ArrayList<String> dictionary = GameLogic1.loadDictionary("Dictionary.txt");
-    gameLogic = new GameLogic1(dictionary);
+    dictionary = loadDictionary("Dictionary.txt");
+    targetWord = selectTargetWord(dictionary);
     for (int i = 0; i < 6; i++) {
         guesses[i] = "";
     }
@@ -23,7 +24,7 @@ void draw() {
     background(255);
     drawGrid();
     drawGuesses();
-    drawCurrentGuess(); 
+    drawCurrentGuess();
     drawLetterBank();
     drawHelpButton();
     if (showHelp) {
@@ -46,7 +47,7 @@ void drawGuesses() {
     for (int i = 0; i < guessCount; i++) {
         for (int j = 0; j < 5; j++) {
             char letter = guesses[i].charAt(j);
-            String feedback = gameLogic.evaluateGuess(guesses[i]);
+            String feedback = evaluateGuess(guesses[i], targetWord);
             fill(getColor(feedback.charAt(j)));
             text(letter, j * 100 + 50, i * 100 + 50);
         }
@@ -62,6 +63,7 @@ void drawCurrentGuess() {
         text(letter, i * 100 + 50, guessCount * 100 + 50);
     }
 }
+
 
 void drawLetterBank() {
     textSize(24);
@@ -82,7 +84,18 @@ void drawLetterBank() {
         yOffset += 60;
     }
 }
-
+String evaluateGuess(String guess, String target) {
+    StringBuilder feedback = new StringBuilder("NNNNN");
+    for (int i = 0; i < 5; i++) {
+        char guessChar = guess.charAt(i);
+        if (guessChar == target.charAt(i)) {
+            feedback.setCharAt(i, 'G');
+        } else if (target.contains(String.valueOf(guessChar))) {
+            feedback.setCharAt(i, 'Y');
+        }
+    }
+    return feedback.toString();
+}
 void drawHelpButton() {
     fill(200);
     rect(600, 10, 50, 50);
@@ -132,25 +145,26 @@ void keyPressed() {
         currentGuess = currentGuess.substring(0, currentGuess.length() - 1);
     } else if (key == ENTER && currentGuess.length() == 5) {
         processGuess();
+        
     }
 }
 
 void processGuess() {
-    if (gameLogic.inDictionary(currentGuess)) {
+    if (inDictionary(currentGuess, dictionary)) {
         guesses[guessCount] = currentGuess;
-        if (gameLogic.checkGuess(currentGuess)) {
+        if (checkGuess(currentGuess, targetWord)) {
             println("Congratulations! You guessed the correct word.");
         } else {
             guessCount++;
             currentGuess = "";
             if (guessCount == 6) {
-                println("You've used all attempts! The correct word was: " + gameLogic.getTargetWord());
+                println("You've used all attempts! The correct word was: " + targetWord);
             }
         }
     } else {
         println("The word is not in the dictionary.");
     }
-    usedLetters.clear();  
+    usedLetters.clear();  // Clear used letters after each guess
 }
 
 int getColor(char feedbackChar) {
@@ -162,4 +176,37 @@ int getColor(char feedbackChar) {
         default:
             return color(150); // Gray
     }
+}
+
+ArrayList<String> loadDictionary(String filename) {
+    ArrayList<String> words = new ArrayList<String>();
+    String[] lines = loadStrings(filename);
+    for (String line : lines) {
+        line = line.trim().toLowerCase();
+        if (line.length() == 5) {
+            words.add(line);
+        }
+    }
+    if (words.size() == 0) {
+        println("Dictionary is empty. Cannot select target word.");
+    } else {
+        println("Dictionary loaded with " + words.size() + " words.");
+    }
+    return words;
+}
+
+String selectTargetWord(ArrayList<String> words) {
+    if (words.isEmpty()) {
+        return "";
+    }
+    int index = int(random(words.size()));
+    return words.get(index);
+}
+
+boolean checkGuess(String guess, String target) {
+    return guess.equals(target);
+}
+
+boolean inDictionary(String guess, ArrayList<String> words) {
+    return words.contains(guess.toLowerCase());
 }

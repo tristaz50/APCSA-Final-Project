@@ -8,11 +8,6 @@ public class GameLogic1 {
     private ArrayList<String> dictionary = new ArrayList<>();
     private String targetWord;
 
-    public GameLogic1(ArrayList<String> dictionary) {
-        this.dictionary = dictionary;
-        selectTargetWord();
-    }
-
     public ArrayList<String> loadDictionary(String filename) {
         ArrayList<String> words = new ArrayList<>();
         try {

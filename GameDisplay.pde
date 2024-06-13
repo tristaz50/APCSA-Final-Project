@@ -2,41 +2,55 @@ import java.util.ArrayList;
 
 ArrayList<String> dictionary;
 String targetWord;
-String currentGuess = "";
+String currGuess = "";
 String[] guesses = new String[6];
 int guessCount = 0;
 boolean showHelp = false;
-char[][] letterBank = {{'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'},
-                       {'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'},
-                       {'Z', 'X', 'C', 'V', 'B', 'N', 'M'}};
-ArrayList<Character> usedLetters = new ArrayList<>();
+boolean gameOver = false;
+boolean wrongWord = false;
+char[][] bank = {
+    {'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'},
+    {'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'},
+    {'Z', 'X', 'C', 'V', 'B', 'N', 'M'}
+};
+ArrayList<Character> used = new ArrayList<>();
+ArrayList<Character> wrongLetters = new ArrayList<>();
 
 void setup() {
     size(700, 800);
     dictionary = loadDictionary("Dictionary.txt");
-    targetWord = selectTargetWord(dictionary);
-    for (int i = 0; i < 6; i++) {
-        guesses[i] = "";
-    }
+    resetGame();
+    textFont(createFont("Arial", 24));
 }
 
 void draw() {
-    background(255);
+    background(255, 223, 186);
     drawGrid();
     drawGuesses();
-    drawCurrentGuess();
-    drawLetterBank();
+    drawCurrGuess();
+    drawBank();
     drawHelpButton();
+    drawResetButton();
     if (showHelp) {
         drawHelp();
+    }
+    if (wrongWord) {
+        drawInvalidWordMessage();
+    }
+    if (gameOver) {
+        drawGameOverOptions();
     }
 }
 
 void drawGrid() {
+    int xOffset = (width - 500) / 2; 
+    int yOffset = 50; 
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 5; j++) {
             fill(255);
-            rect(j * 100, i * 100, 100, 100);
+            stroke(150);
+            strokeWeight(3);
+            rect(xOffset + j * 100, yOffset + i * 100, 80, 80, 20);
         }
     }
 }
@@ -44,87 +58,132 @@ void drawGrid() {
 void drawGuesses() {
     textSize(32);
     textAlign(CENTER, CENTER);
+    int xOffset = (width - 500) / 2; 
+    int yOffset = 50; 
     for (int i = 0; i < guessCount; i++) {
+        String feedback = evaluateGuess(guesses[i], targetWord);
+        boolean allCorrect = feedback.equals("GGGGG");
         for (int j = 0; j < 5; j++) {
-            char letter = guesses[i].charAt(j);
-            String feedback = evaluateGuess(guesses[i], targetWord);
-            fill(getColor(feedback.charAt(j)));
-            text(letter, j * 100 + 50, i * 100 + 50);
+            if (allCorrect) {
+                fill(color(0, 255, 0)); 
+            } else {
+                fill(getColor(feedback.charAt(j)));
+            }
+            rect(xOffset + j * 100, yOffset + i * 100, 80, 80, 20);
+            fill(0);
+            text(guesses[i].charAt(j), xOffset + j * 100 + 40, yOffset + i * 100 + 40);
         }
     }
 }
 
-void drawCurrentGuess() {
+void drawCurrGuess() {
     textSize(32);
     textAlign(CENTER, CENTER);
     fill(0);
-    for (int i = 0; i < currentGuess.length(); i++) {
-        char letter = currentGuess.charAt(i);
-        text(letter, i * 100 + 50, guessCount * 100 + 50);
+    int xOffset = (width - 500) / 2; 
+    int yOffset = 50; 
+    for (int i = 0; i < currGuess.length(); i++) {
+        char letter = currGuess.charAt(i);
+        text(letter, xOffset + i * 100 + 40, yOffset + guessCount * 100 + 40);
     }
 }
 
-
-void drawLetterBank() {
+void drawBank() {
     textSize(24);
     textAlign(CENTER, CENTER);
-    int yOffset = 650;
-    for (int row = 0; row < letterBank.length; row++) {
-        for (int col = 0; col < letterBank[row].length; col++) {
-            char letter = letterBank[row][col];
-            if (usedLetters.contains(letter)) {
-                fill(150);
+    int yOffset = 625;
+    for (int row = 0; row < bank.length; row++) {
+        int xOffset = (width - bank[row].length * 50) / 2; 
+        for (int col = 0; col < bank[row].length; col++) {
+            char letter = bank[row][col];
+            if (used.contains(letter)) {
+                fill(150); 
+            } else if (wrongLetters.contains(letter)) {
+                fill(200); 
             } else {
-                fill(255);
+                fill(255, 192, 203); 
             }
-            rect(col * 50 + 50, yOffset, 50, 50);
+            stroke(150);
+            rect(xOffset + col * 50, yOffset, 50, 50, 10);
             fill(0);
-            text(letter, col * 50 + 75, yOffset + 25);
+            text(letter, xOffset + col * 50 + 25, yOffset + 25);
         }
         yOffset += 60;
     }
 }
-String evaluateGuess(String guess, String target) {
-    StringBuilder feedback = new StringBuilder("NNNNN");
-    for (int i = 0; i < 5; i++) {
-        char guessChar = guess.charAt(i);
-        if (guessChar == target.charAt(i)) {
-            feedback.setCharAt(i, 'G');
-        } else if (target.contains(String.valueOf(guessChar))) {
-            feedback.setCharAt(i, 'Y');
-        }
-    }
-    return feedback.toString();
-}
+
 void drawHelpButton() {
-    fill(200);
-    rect(600, 10, 50, 50);
+    fill(173, 216, 230);
+    stroke(0);
+    rect(600, 10, 50, 50, 10);
     fill(0);
     textSize(32);
     text("?", 625, 35);
 }
 
+void drawResetButton() {
+    fill(255, 182, 193);
+    stroke(0);
+    rect(600, 70, 80, 50, 10);
+    fill(0);
+    textSize(20);
+    text("Reset", 640, 95);
+}
+
 void drawHelp() {
     fill(255, 255, 200);
-    rect(50, 100, 600, 400);
+    rect(50, 100, 600, 400, 20);
     fill(0);
     textSize(16);
     textAlign(LEFT, TOP);
     text("Game Instructions:\n\n- Guess the 5-letter word within 6 attempts.\n- Click letters or type using your keyboard.\n- Click the ? button for help.", 70, 120, 560, 360);
 }
 
+void drawInvalidWordMessage() {
+    fill(255, 0, 0);
+    textSize(24);
+    textAlign(CENTER, CENTER);
+    text("This word is not a word", width / 2, height / 2);
+}
+
+void drawGameOverOptions() {
+    fill(255, 255, 200);
+    rect(150, 200, 400, 200, 20);
+    fill(0);
+    textSize(20);
+    textAlign(CENTER, CENTER);
+    text("Game Over! The correct word was: " + targetWord, width / 2, 250);
+    fill(255, 100, 100);
+    rect(200, 300, 100, 50, 10);
+    fill(255);
+    text("Reset", 250, 325);
+    fill(100, 100, 255);
+    rect(400, 300, 100, 50, 10);
+    fill(255);
+    text("Exit", 450, 325);
+}
+
 void mousePressed() {
+    if (gameOver) {
+        if (mouseX > 200 && mouseX < 300 && mouseY > 300 && mouseY < 350) {
+            resetGame();
+        } else if (mouseX > 400 && mouseX < 500 && mouseY > 300 && mouseY < 350) {
+            exit();
+        }
+        return;
+    }
+
     int yOffset = 650;
-    for (int row = 0; row < letterBank.length; row++) {
-        for (int col = 0; col < letterBank[row].length; col++) {
-            int x = col * 50 + 50;
+    for (int row = 0; row < bank.length; row++) {
+        int xOffset = (width - bank[row].length * 50) / 2; 
+        for (int col = 0; col < bank[row].length; col++) {
+            int x = xOffset + col * 50;
             int y = yOffset;
             if (mouseX > x && mouseX < x + 50 && mouseY > y && mouseY < y + 50) {
-                char letter = letterBank[row][col];
-                if (!usedLetters.contains(letter)) {
-                    currentGuess += letter;
-                    usedLetters.add(letter);
-                    if (currentGuess.length() == 5) {
+                char letter = bank[row][col];
+                if (currGuess.length() < 5) { 
+                    currGuess += letter;
+                    if (currGuess.length() == 5) {
                         processGuess();
                     }
                 }
@@ -136,35 +195,51 @@ void mousePressed() {
     if (mouseX > 600 && mouseX < 650 && mouseY > 10 && mouseY < 60) {
         showHelp = !showHelp;
     }
+
+    if (mouseX > 600 && mouseX < 680 && mouseY > 70 && mouseY < 120) {
+        resetGame();
+    }
 }
 
 void keyPressed() {
-    if (key >= 'a' && key <= 'z' && currentGuess.length() < 5) {
-        currentGuess += Character.toUpperCase(key);  // Convert to uppercase
-    } else if (key == BACKSPACE && currentGuess.length() > 0) {
-        currentGuess = currentGuess.substring(0, currentGuess.length() - 1);
-    } else if (key == ENTER && currentGuess.length() == 5) {
+    if (gameOver) return;
+
+    if (key >= 'A' && key <= 'Z' && currGuess.length() < 5) {
+        currGuess += key;
+    } else if (key == BACKSPACE && currGuess.length() > 0) {
+        currGuess = currGuess.substring(0, currGuess.length() - 1);
+    } else if (key == ENTER && currGuess.length() == 5) {
         processGuess();
-        
     }
 }
 
 void processGuess() {
-    if (inDictionary(currentGuess, dictionary)) {
-        guesses[guessCount] = currentGuess;
-        if (checkGuess(currentGuess, targetWord)) {
-            println("Congratulations! You guessed the correct word.");
+    if (inDictionary(currGuess, dictionary)) {
+        wrongWord = false;
+        guesses[guessCount] = currGuess;
+        if (checkGuess(currGuess, targetWord)) {
+            gameOver = true;
         } else {
+            keyboardState(currGuess, targetWord);
             guessCount++;
-            currentGuess = "";
+            currGuess = "";
             if (guessCount == 6) {
-                println("You've used all attempts! The correct word was: " + targetWord);
+                gameOver = true;
             }
         }
     } else {
-        println("The word is not in the dictionary.");
+        wrongWord = true;
     }
-    usedLetters.clear();  // Clear used letters after each guess
+    used.clear();
+}
+
+void keyboardState(String guess, String target) {
+    for (int i = 0; i < guess.length(); i++) {
+        char letter = guess.charAt(i);
+        if (!target.contains(String.valueOf(letter))) {
+            wrongLetters.add(letter);
+        }
+    }
 }
 
 int getColor(char feedbackChar) {
@@ -174,39 +249,61 @@ int getColor(char feedbackChar) {
         case 'Y':
             return color(255, 255, 0); // Yellow
         default:
-            return color(150); // Gray
+            return color(192, 192, 192); // Gray
     }
-}
-
-ArrayList<String> loadDictionary(String filename) {
-    ArrayList<String> words = new ArrayList<String>();
-    String[] lines = loadStrings(filename);
-    for (String line : lines) {
-        line = line.trim().toLowerCase();
-        if (line.length() == 5) {
-            words.add(line);
-        }
-    }
-    if (words.size() == 0) {
-        println("Dictionary is empty. Cannot select target word.");
-    } else {
-        println("Dictionary loaded with " + words.size() + " words.");
-    }
-    return words;
-}
-
-String selectTargetWord(ArrayList<String> words) {
-    if (words.isEmpty()) {
-        return "";
-    }
-    int index = int(random(words.size()));
-    return words.get(index);
 }
 
 boolean checkGuess(String guess, String target) {
     return guess.equals(target);
 }
 
-boolean inDictionary(String guess, ArrayList<String> words) {
-    return words.contains(guess.toLowerCase());
+String evaluateGuess(String guess, String target) {
+    StringBuilder feedback = new StringBuilder("BBBBB");
+    boolean[] targetUsed = new boolean[5];
+    for (int i = 0; i < 5; i++) {
+        if (guess.charAt(i) == target.charAt(i)) {
+            feedback.setCharAt(i, 'G');
+            targetUsed[i] = true;
+        }
+    }
+    for (int i = 0; i < 5; i++) {
+        if (feedback.charAt(i) != 'G') {
+            for (int j = 0; j < 5; j++) {
+                if (!targetUsed[j] && guess.charAt(i) == target.charAt(j)) {
+                    feedback.setCharAt(i, 'Y');
+                    targetUsed[j] = true;
+                    break;
+                }
+            }
+        }
+    }
+    return feedback.toString();
+}
+
+boolean inDictionary(String word, ArrayList<String> dict) {
+    return dict.contains(word);
+}
+
+ArrayList<String> loadDictionary(String fileName) {
+    ArrayList<String> dict = new ArrayList<String>();
+    String[] lines = loadStrings(fileName);
+    for (String line : lines) {
+        dict.add(line.trim().toUpperCase());
+    }
+    return dict;
+}
+
+void resetGame() {
+    targetWord = randomWord(dictionary);
+    currGuess = "";
+    guesses = new String[6];
+    guessCount = 0;
+    used.clear();
+    wrongLetters.clear();
+    gameOver = false;
+    wrongWord = false;
+}
+
+String randomWord(ArrayList<String> dict) {
+    return dict.get((int) random(dict.size())).toUpperCase();
 }
